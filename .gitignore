@@ -1,3 +1,17 @@
+# Files
+**/.DS_Store
+
+# Ignore output files:
+**/outputs/*
+
+# Ignore metadata files:
+**/.metadata/*
+**/metadata/*
+
+# Ignore debug files
+**/Debug/*
+*.launch
+
 # Prerequisites
 *.d
 
@@ -22,6 +36,11 @@
 *.la
 *.lo
 
+# Testing outputs
+*.csv
+*.png
+*.wav
+
 # Shared objects (inc. Windows DLLs)
 *.dll
 *.so
@@ -37,7 +56,7 @@
 *.hex
 
 # Debug files
-*.dSYM/
+**.dSYM/
 *.su
 *.idb
 *.pdb
@@ -45,7 +64,7 @@
 # Kernel Module Compile Results
 *.mod*
 *.cmd
-.tmp_versions/
+**.tmp_versions/
 modules.order
 Module.symvers
 Mkfile.old
