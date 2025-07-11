@@ -66,7 +66,7 @@ def manual_mode(ser):
         while (time.time() - start_time) < duration:
             try:
                 # Reading a single sample as an integer from binary data
-                sample = ser.read(1)
+                sample = ser.read(2)
                 value = int.from_bytes(sample, byteorder='little')
                 print(f"Value received: {value}")
                 data.append(int(value))
