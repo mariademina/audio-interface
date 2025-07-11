@@ -156,8 +156,8 @@ int main(void)
 	  // Read acquired value and store in variable
 	  sampleValue = HAL_ADC_GetValue(&hadc1);
 
-	  // Transmit value over UART2
-	  HAL_UART_Transmit(&huart2, (uint16_t *)&sampleValue, sizeof(sampleValue), HAL_MAX_DELAY);
+	  // Transmit 16-bit value over UART2
+	  HAL_UART_Transmit(&huart2, (uint8_t *)&sampleValue, 2, HAL_MAX_DELAY);
 	}
     /* USER CODE END WHILE */
 
