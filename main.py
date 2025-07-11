@@ -28,13 +28,6 @@ def serial_setup():
     return ser
 
 
-def send_char(char):
-    # Convert the string to a bytes object
-    char_bytes = char.encode('utf-8')
-    # Send the bytes object
-    ser.write(char_bytes)  
-
-
 def menu(ser):
     print("------ Menu ------")
     print("Choose an option: \n1. Manual recording mode\n2. Exit")
@@ -43,7 +36,7 @@ def menu(ser):
     match mode_choice:
         case 1:
             # Send command "m" for manual recording to STM32
-            send_char("m")
+            ser.write(b'm')
             print("Sent command 'm' for manual mode to processing STM32.")
             manual_mode(ser)
         case 2:

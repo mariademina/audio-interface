@@ -18,6 +18,7 @@
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
+#include <stdio.h>
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
@@ -40,10 +41,9 @@
 /* USER CODE END PM */
 
 /* Private variables ---------------------------------------------------------*/
-ADC_HandleTypeDef hadc1;
+TIM_HandleTypeDef htim16;
 
-TIM_HandleTypeDef htim1;
-
+UART_HandleTypeDef huart1;
 UART_HandleTypeDef huart2;
 
 /* USER CODE BEGIN PV */
@@ -53,47 +53,15 @@ UART_HandleTypeDef huart2;
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
+static void MX_TIM16_Init(void);
+static void MX_USART1_UART_Init(void);
 static void MX_USART2_UART_Init(void);
-static void MX_ADC1_Init(void);
-static void MX_TIM1_Init(void);
 /* USER CODE BEGIN PFP */
 
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
-
-
-
-uint8_t receivedCommand;		// To store command received over UART2
-uint8_t uart2DataReady = 0;		// Check if new command received over UART2
-
-uint16_t sampleValue = 0;		// To store sample value
-uint8_t newADCValueReady = 0; 	// Check if new data has been received
-
-// For moving average filter:
-uint16_t lastValue = 0;
-uint16_t sendValue = 0;
-uint8_t isFirstValue = 1; 		// Initialise to true for first value
-
-// Callback function for ADC
-void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef *hadc) {
-	if (hadc->Instance == ADC1) {
-		newADCValueReady = 1;
-	}
-}
-
-// Callback function for UART
-void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart) {
-	if (huart->Instance == USART2) { // Command received from Python via UART2
-		uart2DataReady = 1;
-
-		HAL_GPIO_TogglePin(LD3_GPIO_Port, LD3_Pin); // Debug: toggle LED on every UART receive
-
-		// Restart reception for next command
-		HAL_UART_Receive_IT(&huart2, &receivedCommand, sizeof(receivedCommand));
-	}
-}
 
 /* USER CODE END 0 */
 
@@ -126,41 +94,32 @@ int main(void)
 
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
+  MX_TIM16_Init();
+  MX_USART1_UART_Init();
   MX_USART2_UART_Init();
-  MX_ADC1_Init();
-  MX_TIM1_Init();
   /* USER CODE BEGIN 2 */
-
-  // Start ADC
-  HAL_ADC_Start_IT(&hadc1);
-  // Start receiving first 1-byte command over UART2 and trigger interrupt once received
-  HAL_UART_Receive_IT(&huart2, &receivedCommand, sizeof(receivedCommand));
-
+  char buffer[1];
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
   while (1)
   {
+	// Receive message over UART2
+	HAL_UART_Receive(&huart2, (uint8_t *)buffer, sizeof(buffer), HAL_MAX_DELAY);
+
+//	// Receive message over UART1
+//	HAL_UART_Receive(&huart1, (uint8_t *)buffer, sizeof(buffer), HAL_MAX_DELAY);
+
+	// Flash LD3
+	HAL_GPIO_WritePin(LD3_GPIO_Port, LD3_Pin, 1);
+	HAL_Delay(100);
 	HAL_GPIO_WritePin(LD3_GPIO_Port, LD3_Pin, 0);
-
-	if (uart2DataReady == 1) {
-		if (receivedCommand == 'm') {
-			HAL_GPIO_WritePin(LD3_GPIO_Port, LD3_Pin, 1);	// Turn on LED
-			uart2DataReady = 0;								// Reset flag
-		}
-	}
-
-//	if (newADCValueReady) {
-//	  // Reset
-//	  newADCValueReady = 0;
-//
-//	  // Read acquired value and store in variable
-//	  sampleValue = HAL_ADC_GetValue(&hadc1);
-//
-//	  // Transmit 16-bit value over UART2
-//	  HAL_UART_Transmit(&huart2, (uint8_t *)&sampleValue, 2, HAL_MAX_DELAY);
-//	}
+	HAL_Delay(100);
+	HAL_GPIO_WritePin(LD3_GPIO_Port, LD3_Pin, 1);
+	HAL_Delay(100);
+	HAL_GPIO_WritePin(LD3_GPIO_Port, LD3_Pin, 0);
+	HAL_Delay(100);
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
@@ -229,107 +188,69 @@ void SystemClock_Config(void)
 }
 
 /**
-  * @brief ADC1 Initialization Function
+  * @brief TIM16 Initialization Function
   * @param None
   * @retval None
   */
-static void MX_ADC1_Init(void)
+static void MX_TIM16_Init(void)
 {
 
-  /* USER CODE BEGIN ADC1_Init 0 */
+  /* USER CODE BEGIN TIM16_Init 0 */
 
-  /* USER CODE END ADC1_Init 0 */
+  /* USER CODE END TIM16_Init 0 */
 
-  ADC_ChannelConfTypeDef sConfig = {0};
+  /* USER CODE BEGIN TIM16_Init 1 */
 
-  /* USER CODE BEGIN ADC1_Init 1 */
-
-  /* USER CODE END ADC1_Init 1 */
-
-  /** Common config
-  */
-  hadc1.Instance = ADC1;
-  hadc1.Init.ClockPrescaler = ADC_CLOCK_ASYNC_DIV1;
-  hadc1.Init.Resolution = ADC_RESOLUTION_12B;
-  hadc1.Init.DataAlign = ADC_DATAALIGN_RIGHT;
-  hadc1.Init.ScanConvMode = ADC_SCAN_DISABLE;
-  hadc1.Init.EOCSelection = ADC_EOC_SINGLE_CONV;
-  hadc1.Init.LowPowerAutoWait = DISABLE;
-  hadc1.Init.ContinuousConvMode = DISABLE;
-  hadc1.Init.NbrOfConversion = 1;
-  hadc1.Init.DiscontinuousConvMode = DISABLE;
-  hadc1.Init.ExternalTrigConv = ADC_SOFTWARE_START;
-  hadc1.Init.ExternalTrigConvEdge = ADC_EXTERNALTRIGCONVEDGE_NONE;
-  hadc1.Init.DMAContinuousRequests = DISABLE;
-  hadc1.Init.Overrun = ADC_OVR_DATA_PRESERVED;
-  hadc1.Init.OversamplingMode = DISABLE;
-  if (HAL_ADC_Init(&hadc1) != HAL_OK)
+  /* USER CODE END TIM16_Init 1 */
+  htim16.Instance = TIM16;
+  htim16.Init.Prescaler = 31;
+  htim16.Init.CounterMode = TIM_COUNTERMODE_UP;
+  htim16.Init.Period = 65535;
+  htim16.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
+  htim16.Init.RepetitionCounter = 0;
+  htim16.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
+  if (HAL_TIM_Base_Init(&htim16) != HAL_OK)
   {
     Error_Handler();
   }
+  /* USER CODE BEGIN TIM16_Init 2 */
 
-  /** Configure Regular Channel
-  */
-  sConfig.Channel = ADC_CHANNEL_6;
-  sConfig.Rank = ADC_REGULAR_RANK_1;
-  sConfig.SamplingTime = ADC_SAMPLETIME_2CYCLES_5;
-  sConfig.SingleDiff = ADC_SINGLE_ENDED;
-  sConfig.OffsetNumber = ADC_OFFSET_NONE;
-  sConfig.Offset = 0;
-  if (HAL_ADC_ConfigChannel(&hadc1, &sConfig) != HAL_OK)
-  {
-    Error_Handler();
-  }
-  /* USER CODE BEGIN ADC1_Init 2 */
-
-  /* USER CODE END ADC1_Init 2 */
+  /* USER CODE END TIM16_Init 2 */
 
 }
 
 /**
-  * @brief TIM1 Initialization Function
+  * @brief USART1 Initialization Function
   * @param None
   * @retval None
   */
-static void MX_TIM1_Init(void)
+static void MX_USART1_UART_Init(void)
 {
 
-  /* USER CODE BEGIN TIM1_Init 0 */
+  /* USER CODE BEGIN USART1_Init 0 */
 
-  /* USER CODE END TIM1_Init 0 */
+  /* USER CODE END USART1_Init 0 */
 
-  TIM_ClockConfigTypeDef sClockSourceConfig = {0};
-  TIM_MasterConfigTypeDef sMasterConfig = {0};
+  /* USER CODE BEGIN USART1_Init 1 */
 
-  /* USER CODE BEGIN TIM1_Init 1 */
-
-  /* USER CODE END TIM1_Init 1 */
-  htim1.Instance = TIM1;
-  htim1.Init.Prescaler = 31;
-  htim1.Init.CounterMode = TIM_COUNTERMODE_UP;
-  htim1.Init.Period = 100;
-  htim1.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
-  htim1.Init.RepetitionCounter = 0;
-  htim1.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
-  if (HAL_TIM_Base_Init(&htim1) != HAL_OK)
+  /* USER CODE END USART1_Init 1 */
+  huart1.Instance = USART1;
+  huart1.Init.BaudRate = 115200;
+  huart1.Init.WordLength = UART_WORDLENGTH_8B;
+  huart1.Init.StopBits = UART_STOPBITS_1;
+  huart1.Init.Parity = UART_PARITY_NONE;
+  huart1.Init.Mode = UART_MODE_TX_RX;
+  huart1.Init.HwFlowCtl = UART_HWCONTROL_NONE;
+  huart1.Init.OverSampling = UART_OVERSAMPLING_16;
+  huart1.Init.OneBitSampling = UART_ONE_BIT_SAMPLE_DISABLE;
+  huart1.AdvancedInit.AdvFeatureInit = UART_ADVFEATURE_NO_INIT;
+  if (HAL_UART_Init(&huart1) != HAL_OK)
   {
     Error_Handler();
   }
-  sClockSourceConfig.ClockSource = TIM_CLOCKSOURCE_INTERNAL;
-  if (HAL_TIM_ConfigClockSource(&htim1, &sClockSourceConfig) != HAL_OK)
-  {
-    Error_Handler();
-  }
-  sMasterConfig.MasterOutputTrigger = TIM_TRGO_UPDATE;
-  sMasterConfig.MasterOutputTrigger2 = TIM_TRGO2_RESET;
-  sMasterConfig.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE;
-  if (HAL_TIMEx_MasterConfigSynchronization(&htim1, &sMasterConfig) != HAL_OK)
-  {
-    Error_Handler();
-  }
-  /* USER CODE BEGIN TIM1_Init 2 */
+  /* USER CODE BEGIN USART1_Init 2 */
 
-  /* USER CODE END TIM1_Init 2 */
+  /* USER CODE END USART1_Init 2 */
 
 }
 
