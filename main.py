@@ -7,6 +7,7 @@ import export
 import numpy as np
 
 counter_size_us = 100
+baud_rate = 128000
 sample_rate = 1 / (counter_size_us * math.pow(10, -6))
 
 def serial_setup():
@@ -22,7 +23,7 @@ def serial_setup():
         exit()
 
     # Specify correct serial device
-    ser = serial.Serial(port, 115200, timeout=3)
+    ser = serial.Serial(port, baud_rate, timeout=3)
     return ser
 
 
