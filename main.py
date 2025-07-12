@@ -83,8 +83,8 @@ def convert_and_normalise(data):
     # Convert list of data to numpy array and normalise
     data = np.array(data)
     data = (data - data.min()) / (data.max() - data.min())
-    data = data * 255
-    data = data.astype(np.uint8)
+    data = data * 4095 # scale to 12-bit range
+    data = data.astype(np.uint16) # convert to uint16
     return data
 
         
