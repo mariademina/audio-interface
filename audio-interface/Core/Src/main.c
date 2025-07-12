@@ -59,12 +59,14 @@ static void MX_USART2_UART_Init(void);
 uint8_t receivedCommand;		// To store command received over UART2
 uint8_t uart2DataReady = 0;		// Check if new command received over UART2
 
+char msg[] = "You typed something!\r\n";
+
 // Callback function for UART
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart) {
  if (huart->Instance == USART2) { // Command received from Python via UART2
    uart2DataReady = 1;
    // Echo back the received character
-   HAL_UART_Transmit(&huart2, &receivedCommand, 1, 100);  
+   HAL_UART_Transmit(&huart2, (uint8_t *)msg, sizeof(msg)-1, 100);
    HAL_UART_Receive_IT(&huart2, &receivedCommand, sizeof(receivedCommand));
  }
 }
@@ -121,7 +123,15 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
-    HAL_Delay(10);
+	HAL_GPIO_WritePin(LD3_GPIO_Port, LD3_Pin, 0);
+
+	if (uart2DataReady == 1) {
+		if (receivedCommand == 'm') {
+			HAL_GPIO_WritePin(LD3_GPIO_Port, LD3_Pin, 1);	// Turn on LED
+			HAL_Delay(100);
+			uart2DataReady = 0;								// Reset flag
+		}
+	}
   }
   /* USER CODE END 3 */
 }
