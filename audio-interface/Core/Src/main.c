@@ -62,26 +62,8 @@ static void MX_ADC1_Init(void);
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
-uint8_t receivedCommand;		// To store command received over UART2
-uint8_t uart2DataReady = 0;		// Check if new command received over UART2
-
 uint16_t sampleValue = 0;		// To store sample value
 uint8_t newADCValueReady = 0; 	// Check if new data has been received
-
-char msg[] = "Command received over UART2.\r\n";
-
-// Callback function for UART
-void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart) {
- if (huart->Instance == USART2) { // Command received from Python via UART2
-   uart2DataReady = 1;
-   HAL_UART_Receive_IT(&huart2, &receivedCommand, sizeof(receivedCommand));
- }
-}
-
-// Callback for UART errors
-void HAL_UART_ErrorCallback(UART_HandleTypeDef *huart) {
-    HAL_GPIO_WritePin(LD3_GPIO_Port, LD3_Pin, GPIO_PIN_SET); // Turn LED on if error
-}
 
 // Callback function for ADC
 void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef *hadc) {
@@ -127,9 +109,9 @@ int main(void)
   MX_ADC1_Init();
   /* USER CODE BEGIN 2 */
 
-  // Start receiving first 1-byte command over UART2 and trigger interrupt once received
-  HAL_UART_Receive_IT(&huart2, &receivedCommand, sizeof(receivedCommand));
-  // Start ADC
+  // Start timer to trigger ADC conversions
+  HAL_TIM_Base_Start(&htim1);
+  // Start ADC in interrupt mode
   HAL_ADC_Start_IT(&hadc1);
 
   /* USER CODE END 2 */
@@ -142,15 +124,6 @@ int main(void)
 
     /* USER CODE BEGIN 3 */
 	HAL_GPIO_WritePin(LD3_GPIO_Port, LD3_Pin, 0);
-
-	if (uart2DataReady == 1) {
-		HAL_UART_Transmit(&huart2, (uint8_t *)msg, sizeof(msg)-1, 100);
-		if (receivedCommand == 'm') {
-			HAL_GPIO_WritePin(LD3_GPIO_Port, LD3_Pin, 1);
-			HAL_Delay(100);
-		}
-    uart2DataReady = 0;
-	}
 
 	if (newADCValueReady) {
 		// Reset
