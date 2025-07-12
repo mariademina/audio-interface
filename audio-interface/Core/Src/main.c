@@ -61,11 +61,17 @@ uint8_t uart2DataReady = 0;		// Check if new command received over UART2
 
 // Callback function for UART
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart) {
-	if (huart->Instance == USART2) { // Command received from Python via UART2
-		uart2DataReady = 1;
-		HAL_GPIO_TogglePin(LD3_GPIO_Port, LD3_Pin); // Debug: toggle LED on every UART receive
-		HAL_UART_Receive_IT(&huart2, &receivedCommand, sizeof(receivedCommand));
-	}
+ if (huart->Instance == USART2) { // Command received from Python via UART2
+   uart2DataReady = 1;
+   // Echo back the received character
+   HAL_UART_Transmit(&huart2, &receivedCommand, 1, 100);  
+   HAL_UART_Receive_IT(&huart2, &receivedCommand, sizeof(receivedCommand));
+ }
+}
+
+// Callback for UART errors
+void HAL_UART_ErrorCallback(UART_HandleTypeDef *huart) {
+    HAL_GPIO_WritePin(LD3_GPIO_Port, LD3_Pin, GPIO_PIN_SET); // Turn LED on if error
 }
 
 
@@ -103,8 +109,8 @@ int main(void)
   MX_USART2_UART_Init();
   /* USER CODE BEGIN 2 */
 
-  // Start receiving first 1-byte command over UART2 and trigger interrupt once received
-  HAL_UART_Receive_IT(&huart2, &receivedCommand, sizeof(receivedCommand));
+ // Start receiving first 1-byte command over UART2 and trigger interrupt once received
+ HAL_UART_Receive_IT(&huart2, &receivedCommand, sizeof(receivedCommand));
 
   /* USER CODE END 2 */
 
@@ -113,15 +119,9 @@ int main(void)
   while (1)
   {
     /* USER CODE END WHILE */
-	HAL_GPIO_WritePin(LD3_GPIO_Port, LD3_Pin, 0);
 
-	if (uart2DataReady == 1) {
-		if (receivedCommand == 'm') {
-			HAL_GPIO_WritePin(LD3_GPIO_Port, LD3_Pin, 1);	// Turn on LED
-			uart2DataReady = 0;								// Reset flag
-		}
-	}
     /* USER CODE BEGIN 3 */
+    HAL_Delay(10);
   }
   /* USER CODE END 3 */
 }
