@@ -1,76 +1,28 @@
-/* USER CODE BEGIN Header */
-/**
-  ******************************************************************************
-  * @file           : main.c
-  * @brief          : Main program body
-  ******************************************************************************
-  * @attention
-  *
-  * Copyright (c) 2025 STMicroelectronics.
-  * All rights reserved.
-  *
-  * This software is licensed under terms that can be found in the LICENSE file
-  * in the root directory of this software component.
-  * If no LICENSE file comes with this software, it is provided AS-IS.
-  *
-  ******************************************************************************
-  */
-/* USER CODE END Header */
-/* Includes ------------------------------------------------------------------*/
-#include "main.h"
-
-/* Private includes ----------------------------------------------------------*/
-/* USER CODE BEGIN Includes */
-
-/* USER CODE END Includes */
-
-/* Private typedef -----------------------------------------------------------*/
-/* USER CODE BEGIN PTD */
-
-/* USER CODE END PTD */
-
-/* Private define ------------------------------------------------------------*/
-/* USER CODE BEGIN PD */
-
-/* USER CODE END PD */
-
-/* Private macro -------------------------------------------------------------*/
-/* USER CODE BEGIN PM */
-
-/* USER CODE END PM */
-
-/* Private variables ---------------------------------------------------------*/
-ADC_HandleTypeDef hadc1;
-
-TIM_HandleTypeDef htim1;
-
-UART_HandleTypeDef huart2;
-
-/* USER CODE BEGIN PV */
-
-/* USER CODE END PV */
-
-/* Private function prototypes -----------------------------------------------*/
-void SystemClock_Config(void);
-static void MX_GPIO_Init(void);
-static void MX_USART2_UART_Init(void);
-static void MX_ADC1_Init(void);
-static void MX_TIM1_Init(void);
-/* USER CODE BEGIN PFP */
-
-/* USER CODE END PFP */
-
-/* Private user code ---------------------------------------------------------*/
-/* USER CODE BEGIN 0 */
-
 uint8_t receivedCommand;		// To store command received over UART2
 uint8_t uart2DataReady = 0;		// Check if new command received over UART2
 
+uint16_t sampleValue = 0;		// To store sample value
+uint8_t newADCValueReady = 0; 	// Check if new data has been received
+
+// For moving average filter:
+uint16_t lastValue = 0;
+uint16_t sendValue = 0;
+uint8_t isFirstValue = 1; 		// Initialise to true for first value
+
+// Callback function for ADC
+void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef *hadc) {
+	if (hadc->Instance == ADC1) {
+		newADCValueReady = 1;
+	}
+}
 
 // Callback function for UART
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart) {
 	if (huart->Instance == USART2) { // Command received from Python via UART2
 		uart2DataReady = 1;
+
+		HAL_GPIO_TogglePin(LD3_GPIO_Port, LD3_Pin); // Debug: toggle LED on every UART receive
+
 		// Restart reception for next command
 		HAL_UART_Receive_IT(&huart2, &receivedCommand, sizeof(receivedCommand));
 	}
@@ -112,6 +64,8 @@ int main(void)
   MX_TIM1_Init();
   /* USER CODE BEGIN 2 */
 
+  // Start ADC
+  HAL_ADC_Start_IT(&hadc1);
   // Start receiving first 1-byte command over UART2 and trigger interrupt once received
   HAL_UART_Receive_IT(&huart2, &receivedCommand, sizeof(receivedCommand));
 
@@ -119,12 +73,33 @@ int main(void)
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
-  while (1) {
-    if (uart2DataReady) {
-      HAL_GPIO_TogglePin(LD3_GPIO_Port, LD3_Pin); // Debug: toggle LED on every UART receive
-    }
+  while (1)
+  {
+	HAL_GPIO_WritePin(LD3_GPIO_Port, LD3_Pin, 0);
+
+	if (uart2DataReady == 1) {
+		if (receivedCommand == 'm') {
+			HAL_GPIO_WritePin(LD3_GPIO_Port, LD3_Pin, 1);	// Turn on LED
+			uart2DataReady = 0;								// Reset flag
+		}
 	}
 
+//	if (newADCValueReady) {
+//	  // Reset
+//	  newADCValueReady = 0;
+//
+//	  // Read acquired value and store in variable
+//	  sampleValue = HAL_ADC_GetValue(&hadc1);
+//
+//	  // Transmit 16-bit value over UART2
+//	  HAL_UART_Transmit(&huart2, (uint8_t *)&sampleValue, 2, HAL_MAX_DELAY);
+	}
+    /* USER CODE END WHILE */
+
+    /* USER CODE BEGIN 3 */
+  }
+  /* USER CODE END 3 */
+}
 
 /**
   * @brief System Clock Configuration
