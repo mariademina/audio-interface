@@ -38,7 +38,7 @@ def menu(ser):
             exit()
 
 
-def record(ser):
+def record(ser):        
     try:
         duration = int(input("Enter the time (seconds) to record for: "))
     except ValueError:
@@ -49,23 +49,32 @@ def record(ser):
     if (input() == "Y"):
         data = []
 
+        # Clear any buffered data before starting
+        ser.reset_input_buffer()
+
         # Record data until duration has passed
         start_time = time.time()
+        bytes_received = 0
+
         while (time.time() - start_time) < duration:
             try:
-                # Reading a single sample as an integer from binary data
-                sample = ser.read(2)
-                value = int.from_bytes(sample, byteorder='little')
-                print(f"Value received: {value}")
-                data.append(int(value))
-
-            except Exception:
-                print("Exception; 0 appended to data")
-                data.append(0)
+                # Non-blocking read with timeout
+                available = ser.in_waiting # number of bytes waiting in serial buffer to be read
+                if available >= 2:
+                    sample = ser.read(2)
+                    bytes_received += 2
+                    value = int.from_bytes(sample, byteorder='little')
+                    data.append(value)
+                    print(f"Value received: {value}")
+                else:
+                    time.sleep(0.001)
+            except Exception as e:
+                print(f"Exception: {e}")
     else:
         menu(ser)
 
-    print(f"{duration} seconds of data ({len(data)} samples) collected.\n")
+    print(f"{duration} seconds of data ({bytes_received} bytes) collected.\n")
+    print(f"Expected sample rate = {sample_rate} b/s")
     print(f"Actual sample rate: {len(data) / duration} b/s")
     export_menu(data)
 
@@ -76,8 +85,6 @@ def convert_and_normalise(data):
     data = (data - data.min()) / (data.max() - data.min())
     data = data * 255
     data = data.astype(np.uint8)
-
-    print(f"Expected sample rate = {sample_rate} b/s")
     return data
 
         
