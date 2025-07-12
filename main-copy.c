@@ -84,15 +84,15 @@ int main(void)
 		}
 	}
 
-//	if (newADCValueReady) {
-//	  // Reset
-//	  newADCValueReady = 0;
-//
-//	  // Read acquired value and store in variable
-//	  sampleValue = HAL_ADC_GetValue(&hadc1);
-//
-//	  // Transmit 16-bit value over UART2
-//	  HAL_UART_Transmit(&huart2, (uint8_t *)&sampleValue, 2, HAL_MAX_DELAY);
+	if (newADCValueReady) {
+	  // Reset
+	  newADCValueReady = 0;
+
+	  // Read acquired value and store in variable
+	  sampleValue = HAL_ADC_GetValue(&hadc1);
+
+	  // Transmit 16-bit value over UART2
+	  HAL_UART_Transmit(&huart2, (uint8_t *)&sampleValue, 2, HAL_MAX_DELAY);
 	}
     /* USER CODE END WHILE */
 
