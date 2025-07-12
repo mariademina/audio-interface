@@ -69,9 +69,9 @@ uint8_t newADCValueReady = 0; 	// Check if new data has been received
 void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef *hadc) {
 	if (hadc->Instance == ADC1) {
 		newADCValueReady = 1;
+		HAL_ADC_Start_IT(&hadc1); // Restart ADC for next conversion
 	}
 }
-
 
 /* USER CODE END 0 */
 
@@ -126,12 +126,13 @@ int main(void)
 	HAL_GPIO_WritePin(LD3_GPIO_Port, LD3_Pin, 0);
 
 	if (newADCValueReady) {
+		HAL_GPIO_TogglePin(LD3_GPIO_Port, LD3_Pin);
 		// Reset
 		newADCValueReady = 0;
 		// Store received value
 		sampleValue = HAL_ADC_GetValue(&hadc1);
 		// Transmit 16-bit value over UART2
-		HAL_UART_Transmit(&huart2, (uint8_t *)&sampleValue, 2, HAL_MAX_DELAY);
+		HAL_UART_Transmit(&huart2, (uint8_t *)&sampleValue, 2, 10);
 	}
   }
   /* USER CODE END 3 */
