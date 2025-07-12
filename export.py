@@ -30,7 +30,7 @@ def png_create(data):
 
 # WAV
 file_name = "Song.wav"
-def create_wav(data):
+def create_wav(data, sample_rate):
     with wave.open(file_name, 'wb') as wav_file:
         wav_file.setnchannels(1) # Single channel audio
         wav_file.setsampwidth(1) # One byte per sample

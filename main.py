@@ -58,7 +58,7 @@ def record(ser):
 
         while (time.time() - start_time) < duration:
             try:
-                # Non-blocking read with timeout
+                # Non-blocking read (when enough bytes are available)
                 available = ser.in_waiting # number of bytes waiting in serial buffer to be read
                 if available >= 2:
                     sample = ser.read(2)
@@ -67,7 +67,7 @@ def record(ser):
                     data.append(value)
                     print(f"Value received: {value}")
                 else:
-                    time.sleep(0.001)
+                    time.sleep(0.001) # prevent cpu hogging
             except Exception as e:
                 print(f"Exception: {e}")
     else:
@@ -95,7 +95,7 @@ def export_menu(data):
     select = input(f"\n------ Export options ------\n1. WAV\n2. PNG\n3. CSV\n4. Save all\n5. Return to main menu\n> ")
     match select:
         case "1":
-            export.create_wav(data)
+            export.create_wav(data, sample_rate)
         case "2":
             export.png_create(data)
         case "3":
@@ -103,7 +103,7 @@ def export_menu(data):
         case "4":
             export.csv_write(data)
             export.png_create(data)
-            export.create_wav(data)
+            export.create_wav(data, sample_rate)
         case "5":
             menu(ser)
 
