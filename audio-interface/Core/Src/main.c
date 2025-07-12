@@ -68,12 +68,12 @@ uint8_t uart2DataReady = 0;		// Check if new command received over UART2
 uint16_t sampleValue = 0;		// To store sample value
 uint8_t newADCValueReady = 0; 	// Check if new data has been received
 
+char msg[] = "Command received over UART2.\r\n";
+
 // Callback function for UART
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart) {
  if (huart->Instance == USART2) { // Command received from Python via UART2
    uart2DataReady = 1;
-   // Echo back the received character
-   HAL_UART_Transmit(&huart2, (uint8_t *)msg, sizeof(msg)-1, 100);
    HAL_UART_Receive_IT(&huart2, &receivedCommand, sizeof(receivedCommand));
  }
 }
@@ -144,11 +144,12 @@ int main(void)
 	HAL_GPIO_WritePin(LD3_GPIO_Port, LD3_Pin, 0);
 
 	if (uart2DataReady == 1) {
+		HAL_UART_Transmit(&huart2, (uint8_t *)msg, sizeof(msg)-1, 100);
 		if (receivedCommand == 'm') {
 			HAL_GPIO_WritePin(LD3_GPIO_Port, LD3_Pin, 1);
 			HAL_Delay(100);
-			uart2DataReady = 0;
 		}
+    uart2DataReady = 0;
 	}
 
 	if (newADCValueReady) {
