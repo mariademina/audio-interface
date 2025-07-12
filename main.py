@@ -3,9 +3,7 @@ import serial
 import serial.tools.list_ports
 import time
 import math
-import adc_to_wav
-import adc_to_csv
-import adc_to_graph
+import export
 import numpy as np
 
 counter_size_us = 100
@@ -30,20 +28,17 @@ def serial_setup():
 
 def menu(ser):
     print("------ Menu ------")
-    print("Choose an option: \n1. Manual recording mode\n2. Exit")
+    print("Choose an option: \n1. Record audio\n2. Exit")
     mode_choice = int(input())
 
     match mode_choice:
         case 1:
-            # Send command "m" for manual recording to STM32
-            ser.write(b'm')
-            print("Sent command 'm' for manual mode to processing STM32.")
-            manual_mode(ser)
+            record(ser)
         case 2:
             exit()
 
 
-def manual_mode(ser):
+def record(ser):
     try:
         duration = int(input("Enter the time (seconds) to record for: "))
     except ValueError:
@@ -72,7 +67,7 @@ def manual_mode(ser):
 
     print(f"{duration} seconds of data ({len(data)} samples) collected.\n")
     print(f"Actual sample rate: {len(data) / duration} b/s")
-    export(data)
+    export_menu(data)
 
 
 def convert_and_normalise(data):
@@ -86,22 +81,22 @@ def convert_and_normalise(data):
     return data
 
         
-def export(data):
+def export_menu(data):
     # Convert and normalise data
     data = convert_and_normalise(data)
 
     select = input(f"\n------ Export options ------\n1. WAV\n2. PNG\n3. CSV\n4. Save all\n5. Return to main menu\n> ")
     match select:
         case "1":
-            adc_to_wav.create_wav(data)
+            export.create_wav(data)
         case "2":
-            adc_to_graph.png_create(data)
+            export.png_create(data)
         case "3":
-            adc_to_csv.csv_write(data)
+            export.csv_write(data)
         case "4":
-            adc_to_csv.csv_write(data)
-            adc_to_graph.png_create(data)
-            adc_to_wav.create_wav(data)
+            export.csv_write(data)
+            export.png_create(data)
+            export.create_wav(data)
         case "5":
             menu(ser)
 
