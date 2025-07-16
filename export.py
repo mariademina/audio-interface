@@ -3,7 +3,7 @@ import csv
 import matplotlib.pyplot as plt
 import wave
 
-# CSV
+# CSV (I didnt make this so idk how it looks)
 def csv_write(data):
     with open("data.csv", 'w', newline='') as csvfile:
         # headers
@@ -18,7 +18,7 @@ def csv_write(data):
             writer.writerow({'ADC voltage':value})
     print("CSV file ""data.csv"" created.")
 
-# PNG graph
+# PNG graph (I also didnt make this)
 def png_create(data):
     plt.plot(data)
     plt.ylabel('Amplitude')

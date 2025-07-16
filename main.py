@@ -4,12 +4,13 @@ import serial.tools.list_ports
 import time
 import math
 import keyboard
-import export
+import export # LOL
 import numpy as np
 
 counter_size_us = 120
 baud_rate = 128000
 expected_sample_rate = 1 / (counter_size_us * math.pow(10, -6))
+actual_sample_rate = None
 
 def serial_setup():
     # Poll serial devices and detect the port used by STM32
@@ -40,7 +41,8 @@ def menu(ser):
             exit()
 
 
-def record(ser):        
+def record(ser):  
+    global actual_sample_rate
     print("Press Enter to start/stop recording.")
 
     # Wait for user to press enter
@@ -74,19 +76,19 @@ def record(ser):
             return
 
     duration = time.time() - start_time
+    actual_sample_rate = len(data) / duration
 
     print(f"{duration} seconds of data ({bytes_received} bytes) collected.\n")
     print(f"Expected sample rate = {expected_sample_rate:.1f} b/s")
-    print(f"Actual sample rate: {len(data) / duration} b/s")
+    print(f"Actual sample rate: {actual_sample_rate:.1f} b/s")
     export_menu(data)
 
 
 def convert_and_normalise(data):
-    # Convert list of data to numpy array and normalise
-    data = np.array(data)
-    data = (data - data.min()) / (data.max() - data.min())
-    data = data * 4095 # scale to 12-bit range
-    data = data.astype(np.uint16) # convert to uint16
+    data = np.array(data)                                   # convert to numpy array
+    data = (data - data.min()) / (data.max() - data.min())  # min-max normalisation
+    data = data * 4095                                      # scale to 12-bit range
+    data = data.astype(np.uint16)                           # convert to uint16
     return data
 
         
@@ -97,7 +99,7 @@ def export_menu(data):
     select = input(f"\n------ Export options ------\n1. WAV\n2. PNG\n3. CSV\n4. Save all\n5. Return to main menu\n> ")
     match select:
         case "1":
-            export.create_wav(data, expected_sample_rate)
+            export.create_wav(data, actual_sample_rate)
         case "2":
             export.png_create(data)
         case "3":
@@ -105,7 +107,7 @@ def export_menu(data):
         case "4":
             export.csv_write(data)
             export.png_create(data)
-            export.create_wav(data, expected_sample_rate)
+            export.create_wav(data, actual_sample_rate)
         case "5":
             menu(ser)
 
