@@ -3,12 +3,13 @@ import serial
 import serial.tools.list_ports
 import time
 import math
+import keyboard
 import export
 import numpy as np
 
-counter_size_us = 100
+counter_size_us = 120
 baud_rate = 128000
-sample_rate = 1 / (counter_size_us * math.pow(10, -6))
+expected_sample_rate = 1 / (counter_size_us * math.pow(10, -6))
 
 def serial_setup():
     # Poll serial devices and detect the port used by STM32
@@ -40,42 +41,42 @@ def menu(ser):
 
 
 def record(ser):        
-    try:
-        duration = int(input("Enter the time (seconds) to record for: "))
-    except ValueError:
-        print("Invalid input.")
-        return
+    print("Press Enter to start/stop recording.")
+
+    # Wait for user to press enter
+    while True:
+        if keyboard.is_pressed('enter'):
+            break
     
-    print(f"Start recording for {duration} seconds? Y/N")
-    if (input() == "Y"):
-        data = []
+    print("Recording... Press Enter to stop")
+    data = []
+    start_time = time.time()
+    bytes_received = 0
 
-        # Clear any buffered data before starting
-        ser.reset_input_buffer()
+    # Clear any buffered data before starting
+    ser.reset_input_buffer()
 
-        # Record data until duration has passed
-        start_time = time.time()
-        bytes_received = 0
+    while True:
+        if keyboard.is_pressed('enter'):
+            break
+        try:
+            # Non-blocking read (when enough bytes are available)
+            available = ser.in_waiting # number of bytes waiting in serial buffer to be read
+            if available >= 2:
+                sample = ser.read(2)
+                bytes_received += 2
+                value = int.from_bytes(sample, byteorder='little')
+                data.append(value)
+            else:
+                time.sleep(0.001) # prevent cpu hogging
+        except Exception as e:
+            print(f"Exception: {e}")
+            return
 
-        while (time.time() - start_time) < duration:
-            try:
-                # Non-blocking read (when enough bytes are available)
-                available = ser.in_waiting # number of bytes waiting in serial buffer to be read
-                if available >= 2:
-                    sample = ser.read(2)
-                    bytes_received += 2
-                    value = int.from_bytes(sample, byteorder='little')
-                    data.append(value)
-                    print(f"Value received: {value}")
-                else:
-                    time.sleep(0.001) # prevent cpu hogging
-            except Exception as e:
-                print(f"Exception: {e}")
-    else:
-        menu(ser)
+    duration = time.time() - start_time
 
     print(f"{duration} seconds of data ({bytes_received} bytes) collected.\n")
-    print(f"Expected sample rate = {sample_rate} b/s")
+    print(f"Expected sample rate = {expected_sample_rate:.1f} b/s")
     print(f"Actual sample rate: {len(data) / duration} b/s")
     export_menu(data)
 
@@ -96,7 +97,7 @@ def export_menu(data):
     select = input(f"\n------ Export options ------\n1. WAV\n2. PNG\n3. CSV\n4. Save all\n5. Return to main menu\n> ")
     match select:
         case "1":
-            export.create_wav(data, sample_rate)
+            export.create_wav(data, expected_sample_rate)
         case "2":
             export.png_create(data)
         case "3":
@@ -104,7 +105,7 @@ def export_menu(data):
         case "4":
             export.csv_write(data)
             export.png_create(data)
-            export.create_wav(data, sample_rate)
+            export.create_wav(data, expected_sample_rate)
         case "5":
             menu(ser)
 
